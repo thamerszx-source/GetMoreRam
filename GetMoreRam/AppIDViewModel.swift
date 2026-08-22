@@ -8,6 +8,35 @@ import SwiftUI
 import StosSign_API_NoCertificate
 import StosSign_Auth
 
+/// The App ID capabilities this app knows how to turn on.
+///
+/// The raw value is the capability identifier Apple's developer services expect, the
+/// entitlement is what Xcode writes into the app's entitlements file for it.
+enum AppIDCapability: String, CaseIterable, Identifiable {
+    case increasedMemoryLimit = "INCREASED_MEMORY_LIMIT"
+    case extendedVirtualAddressing = "EXTENDED_VIRTUAL_ADDRESSING"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .increasedMemoryLimit:
+            return "Add Increased Memory Limit"
+        case .extendedVirtualAddressing:
+            return "Add Extended Virtual Addressing"
+        }
+    }
+
+    var entitlement: String {
+        switch self {
+        case .increasedMemoryLimit:
+            return "com.apple.developer.kernel.increased-memory-limit"
+        case .extendedVirtualAddressing:
+            return "com.apple.developer.kernel.extended-virtual-addressing"
+        }
+    }
+}
+
 class AppIDModel : ObservableObject, Hashable {
     static func == (lhs: AppIDModel, rhs: AppIDModel) -> Bool {
         return lhs === rhs
@@ -26,7 +55,9 @@ class AppIDModel : ObservableObject, Hashable {
         bundleID = appID.bundleIdentifier
     }
     
-    func addIncreasedMemory() async throws {
+    func addCapabilities(_ capabilities: [AppIDCapability]) async throws {
+        guard !capabilities.isEmpty else { return }
+
         guard let team = DataManager.shared.model.team, let session = DataManager.shared.model.session else {
             throw "Please Login First"
         }
@@ -54,10 +85,16 @@ class AppIDModel : ObservableObject, Hashable {
             "X-Apple-I-TimeZone": session.anisetteData.timeZone.abbreviation()!
         ] as [String : String];
         
+        // Every requested capability goes into the same relationship array, so asking for
+        // several of them only costs one request.
+        let capabilityData = capabilities.map {
+            "{\"relationships\":{\"capability\":{\"data\":{\"id\":\"\($0.rawValue)\",\"type\":\"capabilities\"}}},\"type\":\"bundleIdCapabilities\",\"attributes\":{\"settings\":[],\"enabled\":true}}"
+        }.joined(separator: ",")
+        
         var request = URLRequest(url: URL(string: "https://developerservices2.apple.com/services/v1/bundleIds/\(appID.identifier)")!)
         request.httpMethod = "PATCH"
         request.allHTTPHeaderFields = httpHeaders
-        request.httpBody = "{\"data\":{\"relationships\":{\"bundleIdCapabilities\":{\"data\":[{\"relationships\":{\"capability\":{\"data\":{\"id\":\"INCREASED_MEMORY_LIMIT\",\"type\":\"capabilities\"}}},\"type\":\"bundleIdCapabilities\",\"attributes\":{\"settings\":[],\"enabled\":true}}]}},\"id\":\"\(appID.identifier)\",\"attributes\":{\"hasExclusiveManagedCapabilities\":false,\"teamId\":\"\(team.identifier)\",\"bundleType\":\"bundle\",\"identifier\":\"\(appID.bundleIdentifier)\",\"seedId\":\"\(team.identifier)\",\"name\":\"\(appID.name)\"},\"type\":\"bundleIds\"}}".data(using: .utf8)
+        request.httpBody = "{\"data\":{\"relationships\":{\"bundleIdCapabilities\":{\"data\":[\(capabilityData)]}},\"id\":\"\(appID.identifier)\",\"attributes\":{\"hasExclusiveManagedCapabilities\":false,\"teamId\":\"\(team.identifier)\",\"bundleType\":\"bundle\",\"identifier\":\"\(appID.bundleIdentifier)\",\"seedId\":\"\(team.identifier)\",\"name\":\"\(appID.name)\"},\"type\":\"bundleIds\"}}".data(using: .utf8)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode response."

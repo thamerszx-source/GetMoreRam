@@ -1,5 +1,5 @@
 # Get More Ram
-A simple [StosSign](https://github.com/stossy11/StosSign) wrapper app that allows you to enable "Increased Memory Limit" for your sideloaded apps without using Xcode.
+A simple [StosSign](https://github.com/stossy11/StosSign) wrapper app that allows you to enable "Increased Memory Limit" and "Extended Virtual Addressing" for your sideloaded apps without using Xcode.
 
 # How to use
 1. Sideload this app
@@ -7,7 +7,7 @@ A simple [StosSign](https://github.com/stossy11/StosSign) wrapper app that allow
 3. Go to "App IDs" page
 4. Tap Refresh
 5. Tap the app you want to enable "Increased Memory Limit"
-6. Tap "Add Increased Memory Limit"
+6. Tap "Add Increased Memory Limit", "Add Extended Virtual Addressing", or "Add Both"
 7. Reinstall the app from SideStore/AltStore
 8. Check if you have "Increased Memory Limit"
 

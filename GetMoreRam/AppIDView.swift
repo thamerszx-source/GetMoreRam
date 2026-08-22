@@ -11,15 +11,33 @@ struct AppIDEditView : View {
     
     @State private var errorShow = false
     @State private var errorInfo = ""
+    @State private var isSubmitting = false
     
     var body: some View {
         Form {
             Section {
-                Button {
-                    Task { await addIncreasedMemoryLimit() }
-                } label: {
-                    Text("Add Increased Memory Limit")
+                ForEach(AppIDCapability.allCases) { capability in
+                    Button {
+                        Task { await addCapabilities([capability]) }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(capability.title)
+                            Text(capability.entitlement)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .disabled(isSubmitting)
                 }
+                
+                Button {
+                    Task { await addCapabilities(AppIDCapability.allCases) }
+                } label: {
+                    Text("Add Both")
+                }
+                .disabled(isSubmitting)
+            } footer: {
+                Text("Each button only enables the capability it names. Tap \"Add Both\" to enable them together in a single request.")
             }
             
             Section {
@@ -39,9 +57,13 @@ struct AppIDEditView : View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
-    func addIncreasedMemoryLimit() async {
+    @MainActor
+    func addCapabilities(_ capabilities: [AppIDCapability]) async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        
         do {
-            try await viewModel.addIncreasedMemory()
+            try await viewModel.addCapabilities(capabilities)
         } catch {
             errorInfo = error.detailedDescription
             errorShow = true
