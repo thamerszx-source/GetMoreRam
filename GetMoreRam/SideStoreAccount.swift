@@ -126,12 +126,24 @@ enum SideStoreConfigurationFile {
     }
 
     static func looksLikeJSON(_ data: Data) -> Bool {
+<<<<<<< HEAD
         // The legacy export is a JSON document, while a .sideconf container is a random
         // salt followed by AES-GCM output. Actually parsing is the only reliable test:
         // sniffing the first byte misreads a container whose salt happens to start with
         // "{", and that misread ends up as an unexplained JSON decoding error instead of
         // a password prompt.
         (try? JSONSerialization.jsonObject(with: data)) != nil
+=======
+        var bytes = data
+        // Skip a UTF-8 BOM if present.
+        if bytes.starts(with: [0xEF, 0xBB, 0xBF]) {
+            bytes = bytes.dropFirst(3)
+        }
+        guard let first = bytes.first(where: { $0 != 0x20 && $0 != 0x09 && $0 != 0x0A && $0 != 0x0D }) else {
+            return false
+        }
+        return first == UInt8(ascii: "{")
+>>>>>>> cc32967cb8bb1d5be8178a08a1abaedfd95429de
     }
 
     static func decrypt(_ data: Data, password: String) throws -> Data {
